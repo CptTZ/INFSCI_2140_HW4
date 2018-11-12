@@ -12,9 +12,11 @@ import SearchLucene.QueryRetrievalModel;
 public class PseudoRFRetrievalModel {
 
     MyIndexReader ixreader;
+    private final long allContentLength;
 
     public PseudoRFRetrievalModel(MyIndexReader ixreader) {
         this.ixreader = ixreader;
+        this.allContentLength = ixreader.getTotalContentLength();
     }
 
     /**
@@ -56,7 +58,7 @@ public class PseudoRFRetrievalModel {
      * @throws Exception
      */
     public HashMap<String, Double> GetTokenRFScore(Query aQuery, int TopK) throws Exception {
-        HashMap<String, Double> TokenRFScore = new HashMap<String, Double>();
+        HashMap<String, Double> TokenRFScore = new HashMap<>();
 
         return TokenRFScore;
     }

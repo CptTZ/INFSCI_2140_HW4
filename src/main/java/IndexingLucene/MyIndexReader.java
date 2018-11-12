@@ -26,6 +26,7 @@ public class MyIndexReader {
 	private Directory directory;
 	private DirectoryReader ireader;
 	private IndexSearcher isearcher;
+	private final long totalContentLen;
 	
 	public MyIndexReader( String dataType ) throws IOException {
 		if (dataType.equals("trectext")) {
@@ -35,6 +36,11 @@ public class MyIndexReader {
 		}
 		ireader = DirectoryReader.open(directory);
 		isearcher = new IndexSearcher(ireader);
+		this.totalContentLen=ireader.getSumTotalTermFreq("CONTENT");
+	}
+
+	public long getTotalContentLength() {
+		return this.totalContentLen;
 	}
 	
 	/**
