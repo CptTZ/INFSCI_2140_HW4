@@ -39,6 +39,10 @@ public class PseudoRFRetrievalModel {
         // (2) implement GetTokenRFScore to get each query token's P(token|feedback model) in feedback documents
         // (3) implement the relevance feedback model for each token: combine the each query token's original retrieval score P(token|document) with its score in feedback documents P(token|feedback model)
         // (4) for each document, use the query likelihood language model to get the whole query's new score, P(Q|document)=P(token_1|document')*P(token_2|document')*...*P(token_n|document')
+        double revAlpha = 1 - alpha;
+
+        // sort all retrieved documents from most relevant to least, and return TopN
+        List<Document> results = new ArrayList<>(TopN);
 
         // convert query to terms
         String[] tokens = aQuery.GetQueryContent().split(" ");
@@ -49,11 +53,35 @@ public class PseudoRFRetrievalModel {
         //get P(token|feedback documents)
         HashMap<String, Double> TokenRFScore = GetTokenRFScore(aQuery, TopK, postingData);
 
+        // Relevance feedback model
+        for (int docid : postingData.keySet()) {
+            HashMap<String, Integer> posting = postingData.get(docid);
+            int doclen = this.ixreader.docLength(docid);
+            double score = 1.0;
 
-        // sort all retrieved documents from most relevant to least, and return TopN
-        List<Document> results = new ArrayList<>(TopN);
+            // Smooth (come from hw3)
+            double adjLen = (doclen + this.mu);
+            double // (|D|/(|D|+MU)) as l1 and (MU/(|D|+MU)) as r1
+                    l1 = 1.0 * doclen / adjLen,
+                    r1 = 1.0 * this.mu / adjLen;
+            for (String token : tokens) {
+                long cf = this.ixreader.CollectionFreq(token);
+                if (cf == 0) {
+                    // System.err.println("Token " + token + " not appeared");
+                    continue;
+                }
+                long tf = posting.getOrDefault(token, 0);
+                double // p(w|D) = l1*(c(w,D)/|D|) + r1*p(w|REF)
+                        l2 = 1.0 * tf / doclen,
+                        r2 = 1.0 * cf / this.allContentLength;
+                // Unigram LM
+                score *= alpha * (l1 * l2 + r1 * r2) + revAlpha * TokenRFScore.getOrDefault(token, 0.0);
+            }
+            results.add(new Document(String.valueOf(docid), ixreader.getDocno(docid), score));
+        }
+
         results.sort((d1, d2) -> d1.score() > d2.score() ? -1 : 1);
-        return results;
+        return results.subList(0, TopN);
     }
 
     /**
@@ -78,8 +106,12 @@ public class PseudoRFRetrievalModel {
                 l1 = 1.0 * doclen / adjLen,
                 r1 = 1.0 * this.mu / adjLen;
         for (String token : pDoc.keySet()) {
-            long tf = pDoc.get(token);
             long cf = this.ixreader.CollectionFreq(token);
+            if (cf == 0) {
+                // System.err.println("Token " + token + " not appeared");
+                continue;
+            }
+            long tf = pDoc.getOrDefault(token, 0L);
             double // p(w|D) = l1*(c(w,D)/|D|) + r1*p(w|REF)
                     l2 = 1.0 * tf / doclen,
                     r2 = 1.0 * cf / this.allContentLength;
