@@ -20,6 +20,8 @@ public class HW3QRModel {
     private HashMap<String, Long> collectionFreq = new HashMap<>();
     private HashMap<String, int[][]> collectionPostings = new HashMap<>();
 
+    private HashMap<Integer, HashMap<String, Integer>> queryResult;
+
     public HW3QRModel(MyIndexReader ixreader) {
         indexReader = ixreader;
         this.collectionTotalLength = ixreader.getTotalContentLength();
@@ -51,11 +53,15 @@ public class HW3QRModel {
         return internalQueryDocumentRanked(queryTokens, TopN);
     }
 
+    public HashMap<Integer, HashMap<String, Integer>> getQueryResult() {
+        return this.queryResult;
+    }
+
     /**
      * Internal method for querying one tokenized document, rank the result based on scores
      */
     private List<Document> internalQueryDocumentRanked(String[] tokens, int topN) throws IOException {
-        HashMap<Integer, HashMap<String, Integer>> queryResult = populateQueryResult(tokens);
+        this.queryResult = populateQueryResult(tokens);
         ArrayList<Document> allResults = queryLikelihood(queryResult, tokens);
 
         // Order by score DESC
@@ -73,10 +79,7 @@ public class HW3QRModel {
             res.add(doc);
             if (++countDoc > finalSize - 1) break;
         }
-        // Save memory
-        queryResult.forEach((id, tmp) -> tmp.clear());
-        queryResult.clear();
-        allResults.clear();
+
         return res;
     }
 

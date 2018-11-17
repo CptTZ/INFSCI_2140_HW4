@@ -3,6 +3,7 @@ package PseudoRFSearch;
 import Classes.Document;
 import Classes.Query;
 import IndexingLucene.MyIndexReader;
+import SearchLucene.HW3QRModel;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,14 +14,15 @@ public class PseudoRFRetrievalModel {
 
     private final MyIndexReader ixreader;
     private final long allContentLength;
-    private final SearchLucene.QueryRetrievalModel qrm;
+    private final HW3QRModel qrm;
 
     private final double mu = 2000;
 
     public PseudoRFRetrievalModel(MyIndexReader ixreader) {
         this.ixreader = ixreader;
         this.allContentLength = ixreader.getTotalContentLength();
-        this.qrm = new SearchLucene.QueryRetrievalModel(ixreader);
+        this.qrm = new HW3QRModel(ixreader);
+        this.qrm.setMu(this.mu);
     }
 
     /**
@@ -47,11 +49,11 @@ public class PseudoRFRetrievalModel {
         // convert query to terms
         String[] tokens = aQuery.GetQueryContent().split(" ");
 
-        // Get posting like in hw3
-        HashMap<Integer, HashMap<String, Integer>> postingData = postingMapping(tokens);
-
         //get P(token|feedback documents)
-        HashMap<String, Double> TokenRFScore = GetTokenRFScore(aQuery, TopK, postingData);
+        HashMap<String, Double> TokenRFScore = GetTokenRFScore(aQuery, TopK);
+
+        // Get posting like in hw3
+        HashMap<Integer, HashMap<String, Integer>> postingData = this.qrm.getQueryResult();
 
         // Relevance feedback model
         for (int docid : postingData.keySet()) {
@@ -93,10 +95,12 @@ public class PseudoRFRetrievalModel {
      * @param TopK
      * @return
      */
-    private HashMap<String, Double> GetTokenRFScore(Query aQuery, int TopK, HashMap<Integer, HashMap<String, Integer>> p) throws Exception {
+    private HashMap<String, Double> GetTokenRFScore(Query aQuery, int TopK) throws Exception {
         HashMap<String, Double> TokenRFScore = new HashMap<>();
 
         List<Document> originalRes = this.qrm.retrieveQuery(aQuery, TopK);
+        HashMap<Integer, HashMap<String, Integer>> p = this.qrm.getQueryResult();
+
         HashMap<String, Long> pDoc = new HashMap<>();
         long doclen = populatePseudoDoc(pDoc, originalRes, p);
 
