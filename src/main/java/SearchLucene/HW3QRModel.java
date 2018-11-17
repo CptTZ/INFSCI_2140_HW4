@@ -129,7 +129,7 @@ public class HW3QRModel {
     /**
      * Get term freq in the given collection of given token
      */
-    private Long getCollectionFreq(String token) throws IOException {
+    public Long getCollectionFreq(String token) throws IOException {
         if (!this.collectionFreq.containsKey(token)) {
             Long termFreq = this.indexReader.CollectionFreq(token);
             Long myFreq = calcCollectionFreq(getCollectionPostings(token));

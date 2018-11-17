@@ -110,7 +110,7 @@ public class PseudoRFRetrievalModel {
                 l1 = 1.0 * doclen / adjLen,
                 r1 = 1.0 * this.mu / adjLen;
         for (String token : pDoc.keySet()) {
-            long cf = this.ixreader.CollectionFreq(token);
+            long cf = this.qrm.getCollectionFreq(token);
             if (cf == 0) {
                 // System.err.println("Token " + token + " not appeared");
                 continue;
@@ -143,33 +143,6 @@ public class PseudoRFRetrievalModel {
             totalLen += this.ixreader.docLength(docId);
         }
         return totalLen;
-    }
-
-    /**
-     * Code from hw3
-     *
-     * @return <DOCID, <TERM, FREQ>>
-     */
-    private HashMap<Integer, HashMap<String, Integer>> postingMapping(String[] tokens) throws IOException {
-        HashMap<Integer, HashMap<String, Integer>> tokenOnCollection = new HashMap<>();
-        for (String token : tokens) {
-            Long cFreq = this.ixreader.CollectionFreq(token);
-            // Non-exist, no need to calc posting list
-            if (cFreq.equals(0L)) {
-                System.err.println(String.format("Term <%s> not appeared.", token));
-                continue;
-            }
-            int[][] postingList = this.ixreader.getPostingList(token);
-            for (int[] postingForOneDoc : postingList) {
-                int docid = postingForOneDoc[0], docFreq = postingForOneDoc[1];
-                HashMap<String, Integer> oneTermFreq = tokenOnCollection.getOrDefault(docid, new HashMap<>());
-                if (oneTermFreq.size() == 0) {
-                    tokenOnCollection.putIfAbsent(docid, oneTermFreq);
-                }
-                oneTermFreq.put(token, docFreq);
-            }
-        }
-        return tokenOnCollection;
     }
 
 }
